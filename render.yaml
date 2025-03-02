@@ -3,7 +3,7 @@ services:
   - type: web
     name: astralith-api
     runtime: node
-    repo: https://github.com/YOUR_USERNAME/astralith
+    repo: https://github.com/kaelanrichards/astralith
     plan: free
     envVars:
       - key: BUN_VERSION
@@ -16,6 +16,7 @@ services:
       - key: CLERK_SECRET_KEY
         sync: false
       - key: DATABASE_URL
+        value: "postgresql://postgres:0JHmnCYt1N7WiGNP@db.zhpcbebfjuwveebkmhwn.supabase.co:5432/postgres"
         sync: false
       - key: PORT
         value: "3004"
