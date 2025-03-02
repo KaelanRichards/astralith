@@ -70,7 +70,7 @@ function Button({
       {...props}
     >
       {children}
-      {isLoading && (
+      {isLoading && !asChild && (
         <Loader2
           className={cn("animate-spin", size === "lg" ? "size-5" : "size-4")}
           aria-hidden="true"

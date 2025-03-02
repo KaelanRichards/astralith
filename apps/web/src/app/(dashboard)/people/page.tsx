@@ -11,9 +11,11 @@ import {
   Tag, 
   TrendingUp, 
   UserIcon, 
-  Users 
+  Users,
+  ChevronRight
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import Link from "next/link";
 
 // Mock data for demonstration
 const mockTeamMembers = [
@@ -169,9 +171,10 @@ export default function PeoplePage() {
               </div>
             </CardContent>
             <CardFooter className="border-t bg-muted/50 p-2">
-              <a href={`/people/${member.id}`} className="text-xs text-center w-full text-muted-foreground hover:text-foreground">
+              <Link href={`/people/${member.id}`} className="text-xs text-center w-full text-muted-foreground hover:text-foreground flex items-center justify-center">
                 View Details
-              </a>
+                <ChevronRight className="size-3 ml-1" />
+              </Link>
             </CardFooter>
           </Card>
         ))}

@@ -13,7 +13,7 @@ import {
 import type { Metadata } from "next";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { LucideIcon, Activity, Users, Archive, Map, Heart, Settings, Plug, User } from "lucide-react";
+import { LucideIcon, Activity, Users, Archive, Map, Heart, Settings, Plug, User, Bell } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Astralith - Leadership Dashboard",
@@ -40,8 +40,8 @@ export default async function DashboardLayout({
   }
 
   // Map icons to their components
-  const getIcon = (icon: string) => {
-    switch (icon) {
+  const getIcon = (iconName: string) => {
+    switch (iconName) {
       case "activity": return Activity;
       case "users": return Users;
       case "archive": return Archive;
@@ -50,6 +50,7 @@ export default async function DashboardLayout({
       case "settings": return Settings;
       case "plug": return Plug;
       case "user": return User;
+      case "bell": return Bell;
       default: return Activity;
     }
   };
@@ -99,6 +100,18 @@ export default async function DashboardLayout({
       href: "/settings/integrations",
       icon: "plug",
       description: "Connect your tools",
+    },
+    {
+      title: "API Keys",
+      href: "/settings/api-keys",
+      icon: "key",
+      description: "Manage API access",
+    },
+    {
+      title: "Notifications",
+      href: "/settings/notifications",
+      icon: "bell",
+      description: "Configure your notifications",
     },
     {
       title: "Profile",
