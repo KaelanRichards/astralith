@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -6,9 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { getTeamMembers, transformTeamMemberData } from "@/api/teams.api";
 import { 
+  AlertCircle,
   Mail, 
   Plus, 
+  RefreshCw,
   Search, 
   Shield, 
   ShieldAlert, 
@@ -34,51 +41,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// Mock data for team members
-const mockTeamMembers = [
-  {
-    id: "tm1",
-    name: "Jane Smith",
-    email: "jane@example.com",
-    role: "Admin",
-    department: "Engineering",
-    avatarUrl: "https://api.dicebear.com/7.x/lorelei/svg?seed=Jane",
-    status: "active",
-    joinedAt: "2022-03-15",
-  },
-  {
-    id: "tm2",
-    name: "Mark Johnson",
-    email: "mark@example.com",
-    role: "Member",
-    department: "Product",
-    avatarUrl: "https://api.dicebear.com/7.x/lorelei/svg?seed=Mark",
-    status: "active",
-    joinedAt: "2022-05-20",
-  },
-  {
-    id: "tm3",
-    name: "Sarah Lee",
-    email: "sarah@example.com",
-    role: "Member",
-    department: "Design",
-    avatarUrl: "https://api.dicebear.com/7.x/lorelei/svg?seed=Sarah",
-    status: "active",
-    joinedAt: "2022-08-10",
-  },
-  {
-    id: "tm4",
-    name: "Alex Wong",
-    email: "alex@example.com",
-    role: "Viewer",
-    department: "Marketing",
-    avatarUrl: "https://api.dicebear.com/7.x/lorelei/svg?seed=Alex",
-    status: "invited",
-    joinedAt: "2023-01-05",
-  },
-];
-
-// Mock data for team roles
+// Mock data for team roles - this would also be replaced with real data in a full implementation
 const mockRoles = [
   {
     id: "role1",
@@ -118,6 +81,62 @@ function getRoleIcon(role: string) {
 }
 
 export default function TeamSettingsPage() {
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  // Temporary hardcoded team ID - in a real app this would come from auth context or similar
+  const teamId = "team_1";
+  
+  // Fetch team members from API
+  const { data: apiTeamMembers, isLoading, error } = useQuery({
+    queryKey: ['team-members', teamId],
+    queryFn: () => getTeamMembers(teamId),
+  });
+  
+  // Transform API data to our UI format
+  const teamMembers = apiTeamMembers ? transformTeamMemberData(apiTeamMembers) : [];
+  
+  // Filter team members based on search query and role filter
+  const filteredMembers = teamMembers.filter(member => {
+    const matchesSearch = 
+      searchQuery === "" || 
+      member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.email.toLowerCase().includes(searchQuery.toLowerCase());
+      
+    const matchesRole = 
+      roleFilter === "all" || 
+      member.role.toLowerCase() === roleFilter.toLowerCase();
+      
+    return matchesSearch && matchesRole;
+  });
+  
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <RefreshCw className="size-10 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading team members...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="size-10 mx-auto mb-4 text-destructive" />
+          <p className="text-muted-foreground">Error loading team members</p>
+          <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -153,9 +172,17 @@ export default function TeamSettingsPage() {
               <div className="flex justify-between items-center mb-4">
                 <div className="relative w-full max-w-sm">
                   <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-                  <Input placeholder="Search members..." className="pl-9" />
+                  <Input 
+                    placeholder="Search members..." 
+                    className="pl-9" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
                 </div>
-                <Select defaultValue="all">
+                <Select 
+                  value={roleFilter}
+                  onValueChange={setRoleFilter}
+                >
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Filter by role" />
                   </SelectTrigger>
@@ -179,49 +206,65 @@ export default function TeamSettingsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockTeamMembers.map((member) => (
-                    <TableRow key={member.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage src={member.avatarUrl} alt={member.name} />
-                            <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium">{member.name}</div>
-                            <div className="text-sm text-muted-foreground">{member.email}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getRoleIcon(member.role)}
-                          <span>{member.role}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{member.department}</TableCell>
-                      <TableCell>
-                        {member.status === "active" ? (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50">Active</Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-amber-50 text-amber-700 hover:bg-amber-50">Invited</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon">
-                            <Mail className="size-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon">
-                            <UserCog className="size-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="text-red-500">
-                            <Trash2 className="size-4" />
-                          </Button>
-                        </div>
+                  {filteredMembers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                        {teamMembers.length === 0 
+                          ? "No team members found." 
+                          : "No results match your search criteria."}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    filteredMembers.map((member) => (
+                      <TableRow key={member.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarImage src={member.avatarUrl} alt={member.name} />
+                              <AvatarFallback>
+                                {member.name
+                                  .split(' ')
+                                  .slice(0, 2)
+                                  .map((part: string) => part.charAt(0))
+                                  .join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">{member.name}</div>
+                              <div className="text-sm text-muted-foreground">{member.email}</div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {getRoleIcon(member.role)}
+                            <span>{member.role}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{member.department}</TableCell>
+                        <TableCell>
+                          {member.status === "active" ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50">Active</Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-amber-50 text-amber-700 hover:bg-amber-50">Invited</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="icon">
+                              <Mail className="size-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon">
+                              <UserCog className="size-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="text-red-500">
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>

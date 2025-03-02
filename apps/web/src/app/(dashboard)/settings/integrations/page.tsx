@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useQuery } from "@tanstack/react-query";
+import { getTeamIntegrations } from "@/api/integrations.api";
 import {
   AlertCircle,
   Check,
@@ -42,73 +44,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
-// Mock integrations data
-const mockIntegrations = [
-  {
-    id: "slack",
-    name: "Slack",
-    description: "Send notifications and updates to Slack channels.",
-    icon: "/icons/slack.svg",
-    status: "connected",
-    connectionInfo: {
-      workspace: "Astralith HQ",
-      connectedChannels: ["#team-updates", "#announcements"],
-      connectedAt: "2023-08-15T10:30:00Z",
-    },
-    category: "communication",
-  },
-  {
-    id: "github",
-    name: "GitHub",
-    description: "Link repositories and track code changes.",
-    icon: "/icons/github.svg",
-    status: "connected",
-    connectionInfo: {
-      organization: "astralith-corp",
-      repositories: ["astralith-web", "astralith-api"],
-      connectedAt: "2023-07-22T14:15:00Z",
-    },
-    category: "development",
-  },
-  {
-    id: "google-calendar",
-    name: "Google Calendar",
-    description: "Sync events and schedule meetings.",
-    icon: "/icons/google-calendar.svg",
-    status: "connected",
-    connectionInfo: {
-      account: "team@astralith.com",
-      calendars: ["Team Events", "Product Planning"],
-      connectedAt: "2023-09-05T11:45:00Z",
-    },
-    category: "productivity",
-  },
-  {
-    id: "jira",
-    name: "Jira",
-    description: "Track issues and manage projects.",
-    icon: "/icons/jira.svg",
-    status: "disconnected",
-    category: "development",
-  },
-  {
-    id: "notion",
-    name: "Notion",
-    description: "Connect with your team's knowledge base.",
-    icon: "/icons/notion.svg",
-    status: "disconnected",
-    category: "productivity",
-  },
-  {
-    id: "figma",
-    name: "Figma",
-    description: "Access design files and collaborate with designers.",
-    icon: "/icons/figma.svg",
-    status: "disconnected",
-    category: "design",
-  },
-];
 
 // Type definitions for better TypeScript support
 type ConnectionInfo = {
@@ -188,10 +123,108 @@ const categories = [
   { id: "automation", name: "Automation" },
 ];
 
+// Function to transform API integration data to our UI format
+const transformIntegrationData = (apiIntegrations: any[]): Integration[] => {
+  if (!apiIntegrations) return [];
+  
+  return apiIntegrations.map((integration) => {
+    // Extract data from config based on integration type
+    const config = integration.config || {};
+    
+    let mappedIntegration: Integration = {
+      id: integration.id,
+      name: integration.name,
+      description: getDescriptionForType(integration.type),
+      icon: `/icons/${integration.type}.svg`,
+      status: integration.active ? "connected" : "disconnected",
+      category: getCategoryForType(integration.type),
+    };
+    
+    // Add connection info if active
+    if (integration.active) {
+      switch (integration.type) {
+        case "slack":
+          mappedIntegration.connectionInfo = {
+            workspace: config.workspace || "Unknown workspace",
+            connectedChannels: config.channels || [],
+            connectedAt: integration.createdAt || new Date().toISOString(),
+          };
+          break;
+        case "github":
+          mappedIntegration.connectionInfo = {
+            organization: config.organization || "Unknown organization",
+            repositories: config.repositories || [],
+            connectedAt: integration.createdAt || new Date().toISOString(),
+          };
+          break;
+        case "calendar":
+          mappedIntegration.connectionInfo = {
+            account: config.account || "Unknown account",
+            calendars: config.calendars || [],
+            connectedAt: integration.createdAt || new Date().toISOString(),
+          };
+          break;
+        default:
+          mappedIntegration.connectionInfo = {
+            connectedAt: integration.createdAt || new Date().toISOString(),
+          };
+      }
+    }
+    
+    return mappedIntegration;
+  });
+};
+
+// Helper functions for transforming integration data
+const getDescriptionForType = (type: string): string => {
+  switch (type) {
+    case "slack":
+      return "Send notifications and updates to Slack channels.";
+    case "github":
+      return "Link repositories and track code changes.";
+    case "linear":
+      return "Project management for software teams.";
+    case "calendar":
+      return "Sync events and schedule meetings.";
+    case "hr":
+      return "Connect with your HR system.";
+    default:
+      return "Connect with your team's tools.";
+  }
+};
+
+const getCategoryForType = (type: string): string => {
+  switch (type) {
+    case "slack":
+      return "communication";
+    case "github":
+    case "linear":
+      return "development";
+    case "calendar":
+      return "productivity";
+    case "hr":
+      return "productivity";
+    default:
+      return "productivity";
+  }
+};
+
 export default function IntegrationsPage() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
+  
+  // Temporary hardcoded team ID - in a real app this would come from auth context or similar
+  const teamId = "team_1";
+  
+  // Fetch integrations data from API
+  const { data: apiIntegrations, isLoading, error } = useQuery({
+    queryKey: ['integrations', teamId],
+    queryFn: () => getTeamIntegrations(teamId),
+  });
+  
+  // Transform API data to our UI format
+  const integrations = apiIntegrations ? transformIntegrationData(apiIntegrations) : [];
 
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -204,7 +237,7 @@ export default function IntegrationsPage() {
   };
 
   // Filter integrations based on selected category and search query
-  const filteredIntegrations = mockIntegrations.filter((integration) => {
+  const filteredIntegrations = integrations.filter((integration) => {
     const matchesCategory =
       selectedCategory === "all" ||
       (selectedCategory === "connected" && integration.status === "connected") ||
@@ -236,6 +269,33 @@ export default function IntegrationsPage() {
     }
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <RefreshCw className="size-10 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading integrations...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="size-10 mx-auto mb-4 text-destructive" />
+          <p className="text-muted-foreground">Error loading integrations</p>
+          <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -264,7 +324,7 @@ export default function IntegrationsPage() {
                     <span className="ml-2">{category.name}</span>
                     {category.id === "connected" && (
                       <Badge className="ml-auto" variant="secondary">
-                        {mockIntegrations.filter(i => i.status === "connected").length}
+                        {integrations.filter(i => i.status === "connected").length}
                       </Badge>
                     )}
                   </Button>

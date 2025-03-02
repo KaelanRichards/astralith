@@ -1,115 +1,105 @@
+"use client";
+
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { 
   BarChart, 
   Calendar, 
   CheckCircle, 
   Clock, 
   LineChart, 
+  Search,
   Tag, 
   TrendingUp, 
   UserIcon, 
   Users,
-  ChevronRight
+  ChevronRight,
+  Loader2,
+  AlertCircle,
+  RefreshCcw
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
-
-// Mock data for demonstration
-const mockTeamMembers = [
-  {
-    id: "usr_1",
-    name: "Jane Smith",
-    role: "Lead Frontend Developer",
-    email: "jane@example.com",
-    avatarUrl: "https://api.dicebear.com/7.x/lorelei/svg?seed=Jane",
-    department: "Engineering",
-    engagementScore: 92,
-    productivityScore: 85,
-    growthTrajectory: "Exceeding",
-    readyForPromotion: true,
-    riskOfBurnout: "Low",
-    recentActivity: "Completed 14 tasks in the last 7 days",
-    lastActiveHours: 4,
-    projectContributions: [
-      { project: "Dashboard Redesign", tasks: 23, completion: 95 },
-      { project: "Mobile App", tasks: 12, completion: 78 },
-    ],
-    strengths: ["UI Design", "React", "Mentoring", "Documentation"],
-    areasForGrowth: ["Backend Integration", "Performance Optimization"],
-    tags: ["High Performer", "Mentor", "Product Champion"],
-  },
-  {
-    id: "usr_2",
-    name: "Mark Johnson",
-    role: "Backend Developer",
-    email: "mark@example.com",
-    avatarUrl: "https://api.dicebear.com/7.x/lorelei/svg?seed=Mark",
-    department: "Engineering",
-    engagementScore: 78,
-    productivityScore: 90,
-    growthTrajectory: "Meeting",
-    readyForPromotion: false,
-    riskOfBurnout: "Medium",
-    recentActivity: "Completed 10 tasks in the last 7 days",
-    lastActiveHours: 2,
-    projectContributions: [
-      { project: "API Refactoring", tasks: 18, completion: 85 },
-      { project: "Database Migration", tasks: 8, completion: 100 },
-    ],
-    strengths: ["Node.js", "Database Design", "Problem Solving"],
-    areasForGrowth: ["Documentation", "Knowledge Sharing", "Frontend Skills"],
-    tags: ["Technical Expert", "Deep Focus"],
-  },
-  {
-    id: "usr_3",
-    name: "Sarah Lee",
-    role: "Product Manager",
-    email: "sarah@example.com",
-    avatarUrl: "https://api.dicebear.com/7.x/lorelei/svg?seed=Sarah",
-    department: "Product",
-    engagementScore: 95,
-    productivityScore: 88,
-    growthTrajectory: "Exceeding",
-    readyForPromotion: true,
-    riskOfBurnout: "Low",
-    recentActivity: "Led 3 planning sessions in the last 7 days",
-    lastActiveHours: 6,
-    projectContributions: [
-      { project: "Q3 Roadmap", tasks: 15, completion: 100 },
-      { project: "User Research", tasks: 8, completion: 90 },
-    ],
-    strengths: ["Communication", "Strategic Thinking", "User Empathy", "Prioritization"],
-    areasForGrowth: ["Technical Knowledge", "Data Analysis"],
-    tags: ["Strategic Thinker", "Team Player", "Customer Advocate"],
-  },
-  {
-    id: "usr_4",
-    name: "Alex Wong",
-    role: "QA Engineer",
-    email: "alex@example.com",
-    avatarUrl: "https://api.dicebear.com/7.x/lorelei/svg?seed=Alex",
-    department: "Engineering",
-    engagementScore: 72,
-    productivityScore: 83,
-    growthTrajectory: "Meeting",
-    readyForPromotion: false,
-    riskOfBurnout: "High",
-    recentActivity: "Filed 25 bug reports in the last 7 days",
-    lastActiveHours: 8,
-    projectContributions: [
-      { project: "Release Testing", tasks: 30, completion: 92 },
-      { project: "Automation Framework", tasks: 5, completion: 40 },
-    ],
-    strengths: ["Detail Oriented", "Test Planning", "Bug Advocacy"],
-    areasForGrowth: ["Test Automation", "Programming Skills", "Communication"],
-    tags: ["At Risk", "Needs Support", "Quality Focused"],
-  },
-];
+import { getPeopleWithMetrics } from "@/api/people.api";
+import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 
 export default function PeoplePage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTab, setSelectedTab] = useState("overview");
+  const [apiTestResult, setApiTestResult] = useState<string | null>(null);
+  
+  // Test API connection on component mount
+  useEffect(() => {
+    const testApiConnection = async () => {
+      try {
+        console.log("Testing API connection...");
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/health`);
+        const text = await response.text();
+        console.log(`API health check response: ${text}`);
+        setApiTestResult(`API health check: ${text}`);
+      } catch (error) {
+        console.error("API health check failed:", error);
+        setApiTestResult(`API health check failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    };
+    
+    testApiConnection();
+  }, []);
+  
+  // Fetch people data with metrics
+  const { data: teamMembers, isLoading, error, refetch } = useQuery({
+    queryKey: ["people-with-metrics"],
+    queryFn: getPeopleWithMetrics
+  });
+  
+  // Filter team members based on search query
+  const filteredMembers = teamMembers?.filter(member => 
+    member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    member.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    member.department.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+  
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh]">
+        <Loader2 className="size-12 animate-spin text-primary mb-4" />
+        <p className="text-lg font-medium">Loading team members...</p>
+        <p className="text-sm text-muted-foreground">This might take a moment</p>
+        {apiTestResult && (
+          <div className="mt-4 p-2 bg-muted rounded-md">
+            <p className="text-sm">{apiTestResult}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] text-destructive">
+        <AlertCircle className="size-12 mb-4" />
+        <p className="text-lg font-medium">Error loading team members</p>
+        <p className="text-sm text-muted-foreground mb-4">
+          {error instanceof Error ? error.message : "An unknown error occurred"}
+        </p>
+        {apiTestResult && (
+          <div className="mt-4 p-2 bg-muted rounded-md">
+            <p className="text-sm">{apiTestResult}</p>
+          </div>
+        )}
+        <Button onClick={() => refetch()} variant="outline" className="gap-2">
+          <RefreshCcw className="size-4" />
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+  
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -121,64 +111,99 @@ export default function PeoplePage() {
         </div>
       </div>
       
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
-        {mockTeamMembers.map((member) => (
-          <Card key={member.id} className="overflow-hidden">
-            <CardHeader className="p-0">
-              <div className="relative h-16 bg-gradient-to-r from-primary/20 to-primary/5">
-                <Avatar className="absolute bottom-0 translate-y-1/2 left-4 size-16 border-4 border-background">
-                  <AvatarImage src={member.avatarUrl} alt={member.name} />
-                  <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                </Avatar>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-10 pb-4 space-y-2">
-              <div className="space-y-1">
-                <h3 className="font-semibold text-lg">{member.name}</h3>
-                <p className="text-sm text-muted-foreground">{member.role}</p>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Badge variant={member.riskOfBurnout === "High" ? "destructive" : 
-                      (member.riskOfBurnout === "Medium" ? "default" : "outline")}>
-                  {member.riskOfBurnout} Risk
-                </Badge>
-                {member.readyForPromotion && (
-                  <Badge variant="secondary">Ready for Growth</Badge>
-                )}
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Engagement</p>
-                  <div className="flex items-center gap-2">
-                    <Progress value={member.engagementScore} className="h-2" />
-                    <span className="text-xs">{member.engagementScore}%</span>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Productivity</p>
-                  <div className="flex items-center gap-2">
-                    <Progress value={member.productivityScore} className="h-2" />
-                    <span className="text-xs">{member.productivityScore}%</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center text-xs text-muted-foreground mt-2">
-                <Clock className="size-3 mr-1" />
-                <span>Active {member.lastActiveHours}h ago</span>
-              </div>
-            </CardContent>
-            <CardFooter className="border-t bg-muted/50 p-2">
-              <Link href={`/people/${member.id}`} className="text-xs text-center w-full text-muted-foreground hover:text-foreground flex items-center justify-center">
-                View Details
-                <ChevronRight className="size-3 ml-1" />
-              </Link>
-            </CardFooter>
-          </Card>
-        ))}
+      {/* Search input */}
+      <div className="relative">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="search"
+          placeholder="Search by name, role, or department..."
+          className="pl-8"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </div>
+      
+      {filteredMembers.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+            <UserIcon className="size-12 text-muted-foreground/50 mb-4" />
+            <p className="text-lg font-medium">No team members found</p>
+            <p className="text-sm text-muted-foreground">
+              {searchQuery 
+                ? `No results found for "${searchQuery}". Try a different search term.`
+                : "There are no team members to display. Try refreshing the page."}
+            </p>
+            {searchQuery && (
+              <Button 
+                variant="ghost" 
+                className="mt-4"
+                onClick={() => setSearchQuery("")}
+              >
+                Clear search
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
+          {filteredMembers.map((member) => (
+            <Card key={member.id} className="overflow-hidden">
+              <CardHeader className="p-0">
+                <div className="relative h-16 bg-gradient-to-r from-primary/20 to-primary/5">
+                  <Avatar className="absolute bottom-0 translate-y-1/2 left-4 size-16 border-4 border-background">
+                    <AvatarImage src={member.avatarUrl} alt={member.name} />
+                    <AvatarFallback>{member.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
+                  </Avatar>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-10 pb-4 space-y-2">
+                <div className="space-y-1">
+                  <h3 className="font-semibold text-lg">{member.name}</h3>
+                  <p className="text-sm text-muted-foreground">{member.role}</p>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Badge variant={member.riskOfBurnout === "High" ? "destructive" : 
+                        (member.riskOfBurnout === "Medium" ? "default" : "outline")}>
+                    {member.riskOfBurnout} Risk
+                  </Badge>
+                  {member.readyForPromotion && (
+                    <Badge variant="secondary">Ready for Growth</Badge>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 mt-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Engagement</p>
+                    <div className="flex items-center gap-2">
+                      <Progress value={member.engagementScore} className="h-2" />
+                      <span className="text-xs">{member.engagementScore}%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Productivity</p>
+                    <div className="flex items-center gap-2">
+                      <Progress value={member.productivityScore} className="h-2" />
+                      <span className="text-xs">{member.productivityScore}%</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center text-xs text-muted-foreground mt-2">
+                  <Clock className="size-3 mr-1" />
+                  <span>Active {member.lastActiveHours}h ago</span>
+                </div>
+              </CardContent>
+              <CardFooter className="border-t bg-muted/50 p-2">
+                <Link href={`/people/${member.id}`} className="text-xs text-center w-full text-muted-foreground hover:text-foreground flex items-center justify-center">
+                  View Details
+                  <ChevronRight className="size-3 ml-1" />
+                </Link>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
       
       <Card className="mt-10">
         <CardHeader>
@@ -188,7 +213,7 @@ export default function PeoplePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="overview" className="space-y-4">
+          <Tabs defaultValue="overview" className="space-y-4" value={selectedTab} onValueChange={setSelectedTab}>
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="departments">Departments</TabsTrigger>
@@ -198,66 +223,69 @@ export default function PeoplePage() {
             <TabsContent value="overview" className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Team Size</CardTitle>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Team Size
+                    </CardTitle>
                     <Users className="size-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">24</div>
+                    <div className="text-2xl font-bold">{teamMembers?.length || 0}</div>
                     <p className="text-xs text-muted-foreground">
-                      +3 from last month
+                      Active team members
                     </p>
                   </CardContent>
                 </Card>
-                
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Avg. Engagement</CardTitle>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Avg. Engagement
+                    </CardTitle>
                     <TrendingUp className="size-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">84%</div>
+                    <div className="text-2xl font-bold">
+                      {teamMembers?.length 
+                        ? Math.round(teamMembers.reduce((sum, member) => sum + member.engagementScore, 0) / teamMembers.length) 
+                        : 0}%
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      +2% from last month
+                      Team engagement score
                     </p>
                   </CardContent>
                 </Card>
-                
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Retention Risk</CardTitle>
-                    <UserIcon className="size-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">12%</div>
-                    <p className="text-xs text-muted-foreground">
-                      -3% from last month
-                    </p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Growth Ready</CardTitle>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Promotion Ready
+                    </CardTitle>
                     <CheckCircle className="size-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">5</div>
+                    <div className="text-2xl font-bold">
+                      {teamMembers?.filter(member => member.readyForPromotion).length || 0}
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      Team members ready for promotion
+                      Team members ready for growth
                     </p>
                   </CardContent>
                 </Card>
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="text-lg font-medium">Team Highlights</h3>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>Engineering team has maintained high productivity for 3 consecutive months</li>
-                  <li>Design team collaboration score increased by 15% since implementing new feedback process</li>
-                  <li>3 team members showing signs of potential burnout - intervention recommended</li>
-                  <li>Marketing team onboarding has been completed successfully for 2 new hires</li>
-                </ul>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      At Risk
+                    </CardTitle>
+                    <Calendar className="size-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {teamMembers?.filter(member => member.riskOfBurnout === "High").length || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Team members at high risk
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
             

@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { AlertCircle, CheckCircle, Clock, TrendingDown, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from './ui/use-toast';
+import { getLatestDigest, generateDailyDigest, generateWeeklyDigest } from '@/api/pulse.api';
 
 interface Insight {
   id: string;
@@ -70,9 +71,8 @@ export function PulseDigest({ teamId }: PulseDigestProps) {
   const fetchLatestDigest = async (type: 'daily' | 'weekly') => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/pulse/teams/${teamId}/digests/latest?type=${type}`);
-      if (response.ok) {
-        const data = await response.json();
+      const data = await getLatestDigest(teamId, type);
+      if (data.digest) {
         setDigest(data.digest);
         
         // Fetch insights referenced in the digest
@@ -117,12 +117,14 @@ export function PulseDigest({ teamId }: PulseDigestProps) {
   const generateDigest = async (type: 'daily' | 'weekly') => {
     setGenerating(true);
     try {
-      const response = await fetch(`/api/pulse/teams/${teamId}/digests/${type}`, {
-        method: 'POST',
-      });
+      let data;
+      if (type === 'daily') {
+        data = await generateDailyDigest(teamId);
+      } else {
+        data = await generateWeeklyDigest(teamId);
+      }
       
-      if (response.ok) {
-        const data = await response.json();
+      if (data.digest) {
         setDigest(data.digest);
         toast({
           title: 'Success',
