@@ -1,5 +1,5 @@
 {
-  "name": "webapp-starter",
+  "name": "astralith",
   "private": true,
   "scripts": {
     "build": "turbo run build",
