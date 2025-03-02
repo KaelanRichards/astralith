@@ -1,10 +1,21 @@
-import baseX from "base-x";
+// Use dynamic import for base-x
+import * as crypto from "crypto";
 
-const b58 = baseX("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
+// Import base-x using the ESM syntax
+import BaseX from "base-x";
+
+const b58 = BaseX("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
 
 // Customize the prefixes as needed
 const prefixes = {
   post: "post",
+  team: "team",
+  tmem: "tmem",
+  intg: "intg",
+  inst: "inst",
+  evnt: "evnt",
+  plse: "plse",
+  tmet: "tmet",
 } as const;
 
 export function newId<TPrefix extends keyof typeof prefixes>(prefix: TPrefix) {
