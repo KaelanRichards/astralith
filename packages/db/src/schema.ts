@@ -8,16 +8,6 @@ export const users = pgTable("users", {
   ...lifecycleDates,
 });
 
-export const posts = pgTable("posts", {
-  id: varchar("id", { length: 255 }).primaryKey(),
-  title: varchar("title", { length: 255 }).notNull(),
-  content: text("content").notNull(),
-  userId: varchar("user_id", { length: 128 })
-    .notNull()
-    .references(() => users.userId),
-  ...lifecycleDates,
-});
-
 // Helper function to generate IDs with the appropriate prefix
 function generateId(prefix: string) {
   // Generate a unique ID with the appropriate format

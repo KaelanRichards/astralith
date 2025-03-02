@@ -1,7 +1,10 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 
-import { postRoutes } from "@/modules/posts";
+import { teamRoutes } from "@/modules/teams/teams.routes";
+import { integrationRoutes } from "@/modules/integrations/integrations.routes";
+import { insightRoutes } from "@/modules/insights/insights.routes";
+import { pulseRoutes } from "@/modules/pulse/pulse.routes";
 
 import { logger } from "hono/logger";
 import { errorHandler } from "@/pkg/middleware/error";
@@ -31,7 +34,10 @@ const routes = app
   .basePath("/api")
   .use("*", errorHandler())
   .route("/webhooks", webhookRoutes)
-  .route("/posts", postRoutes);
+  .route("/teams", teamRoutes)
+  .route("/integrations", integrationRoutes)
+  .route("/insights", insightRoutes)
+  .route("/pulse", pulseRoutes);
 
 export type AppType = typeof routes;
 

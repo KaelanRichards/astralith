@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { TailwindIndicator } from "@/components/tailwind-indicator";
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster as SonnerToaster } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
 import { VercelAnalytics } from "@/lib/analytics/vercel";
 import { geistMono, geistSans } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           <Providers attribute="class" defaultTheme="system" enableSystem>
             {children}
             <TailwindIndicator />
+            <SonnerToaster />
             <Toaster />
           </Providers>
           <VercelAnalytics />

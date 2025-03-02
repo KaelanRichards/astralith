@@ -4,32 +4,78 @@ import { z } from "zod";
 
 import * as schema from "./schema";
 
-export type Post = InferSelectModel<typeof schema.posts>;
-export type NewPost = InferInsertModel<typeof schema.posts>;
+// Users
+export type User = InferSelectModel<typeof schema.users>;
+export type NewUser = InferInsertModel<typeof schema.users>;
 
-export const postInsertSchema = createInsertSchema(schema.posts, {}).omit({ userId: true });
-export const postSelectSchema = createSelectSchema(schema.posts);
+export const userInsertSchema = createInsertSchema(schema.users);
+export const userSelectSchema = createSelectSchema(schema.users);
 
-// Astralith types
+// Teams
 export type Team = InferSelectModel<typeof schema.teams>;
 export type NewTeam = InferInsertModel<typeof schema.teams>;
-export const teamInsertSchema = createInsertSchema(schema.teams, {}).omit({ ownerId: true });
-export const teamSelectSchema = createSelectSchema(schema.teams);
 
+export const teamInsertSchema = createInsertSchema(schema.teams).omit({ 
+  id: true, 
+  ownerId: true,
+  createdAt: true,
+  updatedAt: true 
+});
+export const teamUpdateSchema = createInsertSchema(schema.teams).omit({ 
+  id: true, 
+  ownerId: true,
+  createdAt: true,
+  updatedAt: true 
+}).partial();
+
+// Team Members
 export type TeamMember = InferSelectModel<typeof schema.teamMembers>;
 export type NewTeamMember = InferInsertModel<typeof schema.teamMembers>;
-export const teamMemberInsertSchema = createInsertSchema(schema.teamMembers, {}).omit({ userId: true });
-export const teamMemberSelectSchema = createSelectSchema(schema.teamMembers);
 
+export const teamMemberInsertSchema = createInsertSchema(schema.teamMembers).omit({ 
+  id: true,
+  createdAt: true,
+  updatedAt: true 
+});
+export const teamMemberUpdateSchema = createInsertSchema(schema.teamMembers).omit({ 
+  id: true,
+  teamId: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true 
+});
+
+// Integrations
 export type Integration = InferSelectModel<typeof schema.integrations>;
 export type NewIntegration = InferInsertModel<typeof schema.integrations>;
-export const integrationInsertSchema: z.ZodSchema = createInsertSchema(schema.integrations, {});
-export const integrationSelectSchema = createSelectSchema(schema.integrations);
 
+export const integrationInsertSchema: z.ZodSchema = createInsertSchema(schema.integrations).omit({ 
+  id: true,
+  createdAt: true,
+  updatedAt: true 
+});
+export const integrationUpdateSchema: z.ZodSchema = createInsertSchema(schema.integrations).omit({ 
+  id: true,
+  teamId: true,
+  createdAt: true,
+  updatedAt: true 
+}).partial();
+
+// Insights
 export type Insight = InferSelectModel<typeof schema.insights>;
 export type NewInsight = InferInsertModel<typeof schema.insights>;
-export const insightInsertSchema: z.ZodSchema = createInsertSchema(schema.insights, {});
-export const insightSelectSchema = createSelectSchema(schema.insights);
+
+export const insightInsertSchema: z.ZodSchema = createInsertSchema(schema.insights).omit({ 
+  id: true,
+  createdAt: true,
+  updatedAt: true 
+});
+export const insightUpdateSchema: z.ZodSchema = createInsertSchema(schema.insights).omit({ 
+  id: true,
+  teamId: true,
+  createdAt: true,
+  updatedAt: true 
+}).partial();
 
 export type Event = InferSelectModel<typeof schema.events>;
 export type NewEvent = InferInsertModel<typeof schema.events>;
